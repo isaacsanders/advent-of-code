@@ -3,7 +3,7 @@ defmodule Day01 do
   Documentation for `Day01`.
   """
 
-  def run do
+  def run(chunk_size) do
     {:ok, input} =
       :day01
       |> :code.priv_dir()
@@ -13,6 +13,8 @@ defmodule Day01 do
     input
     |> String.splitter("\n", trim: true)
     |> Enum.map(&String.to_integer/1)
+    |> Enum.chunk_every(chunk_size, 1)
+    |> Enum.map(&Enum.sum/1)
     |> count_increases
   end
 
