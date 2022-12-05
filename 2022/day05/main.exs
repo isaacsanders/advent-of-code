@@ -15,7 +15,7 @@ defmodule Day05 do
         row, {processed_crates?, {:processed, crates}} ->
           case parse_move(row) do
             {:ok, move} ->
-              {processed_crates?, {:processed, handle_move(move, crates)}}
+              {processed_crates?, {:processed, handle_move_part01(move, crates)}}
           end
       end)
 
@@ -23,7 +23,24 @@ defmodule Day05 do
   end
 
   def part02(input) do
-    input
+    {true, {:processed, crates}} =
+      input
+      |> Stream.map(&String.trim_trailing(&1, "\n"))
+      |> Enum.reduce({false, {:unprocessed, []}}, fn
+        "", {_processed_crates? = false, {:unprocessed, crates}} ->
+          {true, {:processed, process_crates(crates)}}
+
+        row, {_processed_crates? = false, {:unprocessed, crates}} ->
+          {false, {:unprocessed, [row | crates]}}
+
+        row, {processed_crates?, {:processed, crates}} ->
+          case parse_move(row) do
+            {:ok, move} ->
+              {processed_crates?, {:processed, handle_move_part02(move, crates)}}
+          end
+      end)
+
+    Enum.map(crates, &List.first/1)
   end
 
   defp process_crates([columns_line | crates]) do
@@ -88,7 +105,7 @@ defmodule Day05 do
     {:ok, {move_count, from_column, to_column - 1}}
   end
 
-  defp handle_move({move_count, from_column, to_column}, crates) do
+  defp handle_move_part01({move_count, from_column, to_column}, crates) do
     {moving, staying} =
       crates
       |> Enum.at(from_column)
@@ -100,7 +117,20 @@ defmodule Day05 do
       Enum.reverse(moving) ++ current
     end)
   end
+
+  defp handle_move_part02({move_count, from_column, to_column}, crates) do
+    {moving, staying} =
+      crates
+      |> Enum.at(from_column)
+      |> Enum.split(move_count)
+
+    crates
+    |> List.replace_at(from_column, staying)
+    |> List.update_at(to_column, fn current ->
+      moving ++ current
+    end)
+  end
 end
 
 "./input.txt" |> File.stream!() |> Day05.part01() |> IO.inspect(label: "part 1")
-# "./input.txt" |> File.stream!() |> Day05.part02() |> IO.inspect(label: "part 2")
+"./input.txt" |> File.stream!() |> Day05.part02() |> IO.inspect(label: "part 2")
