@@ -1,4 +1,7 @@
 defmodule Day07 do
+  @total_size 70_000_000
+  @needed_to_update 30_000_000
+
   def part01(input) do
     initial_state = %{cwd: nil, tree: %{}}
 
@@ -21,15 +24,41 @@ defmodule Day07 do
       files |> Enum.map(fn {_filename, size} -> size end) |> Enum.sum()
     end)
     |> Enum.sum()
-
-    # state.tree
-    # |> Enum.filter(fn {_file, size} -> size <= 100_000 end)
-    # |> Enum.map(fn {_file, size} -> size end)
-    # |> Enum.sum()
   end
 
-  # def part02(input) do
-  # end
+  def part02(input) do
+    initial_state = %{cwd: nil, tree: %{}}
+
+    state =
+      input
+      |> Stream.map(&String.trim/1)
+      |> Enum.reduce(initial_state, fn line, state ->
+        line
+        |> parse
+        |> modify(state)
+      end)
+
+    dir_mapped_to_sizes =
+      state.tree
+      |> dirs()
+      |> Map.new(fn path ->
+        {path,
+         state.tree
+         |> get_in(path)
+         |> files_for_dir()
+         |> Enum.map(fn {_filename, size} -> size end)
+         |> Enum.sum()}
+      end)
+
+    used_space = Map.get(dir_mapped_to_sizes, ["/"])
+
+    dir_mapped_to_sizes
+    |> Enum.filter(fn {_path, total_size} ->
+      total_size >= @needed_to_update - (@total_size - used_space)
+    end)
+    |> Enum.min_by(fn {_path, total_size} -> total_size end)
+    |> elem(1)
+  end
 
   defp parse(line) do
     case line do
@@ -126,4 +155,4 @@ defmodule Day07 do
 end
 
 "./input.txt" |> File.stream!() |> Day07.part01() |> IO.inspect(label: "part 1")
-# "./input.txt" |> File.stream!() |> Day07.part02() |> IO.inspect(label: "part 2")
+"./input.txt" |> File.stream!() |> Day07.part02() |> IO.inspect(label: "part 2")
