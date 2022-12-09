@@ -7,36 +7,40 @@ defmodule Day09 do
   }
 
   def part01(input) do
+    abstract_solution(input, 2)
+  end
+
+  def part02(input) do
+    abstract_solution(input, 10)
+  end
+
+  def abstract_solution(input, n) do
+    initial_rope = List.duplicate({0, 0}, n)
+
     input
     |> Stream.map(&String.trim/1)
     |> Stream.flat_map(fn <<direction, ?\s>> <> count_string ->
       List.duplicate(@direction_mapping[direction], String.to_integer(count_string))
     end)
-    |> Stream.scan({{0, 0}, {0, 0}}, fn direction, {head, tail} ->
+    |> Stream.scan(initial_rope, fn direction, [head | tail] ->
       next_head = move(head, direction)
 
-      if touching?(tail, next_head) do
-        {next_head, tail}
-      else
-        {next_head, move_towards(tail, next_head)}
-      end
+      [
+        next_head
+        | Enum.scan(tail, next_head, fn next_tail, next_head ->
+            if touching?(next_tail, next_head) do
+              next_tail
+            else
+              move_towards(next_tail, next_head)
+            end
+          end)
+      ]
     end)
-    |> Enum.reduce(MapSet.new(), fn {_head, tail}, visited_spaces ->
-      MapSet.put(visited_spaces, tail)
+    |> Enum.reduce(MapSet.new(), fn rope, visited_spaces ->
+      MapSet.put(visited_spaces, List.last(rope))
     end)
     |> MapSet.size()
-
-    # |> Enum.reduce(
-    #   %{head: {0, 0}, tail: {0, 0}, tail_visited: MapSet.new()},
-    #   fn {direction, count}, state ->
-    #     nil
-    #   end
-    # )
   end
-
-  # def part02(input) do
-  #   input
-  # end
 
   defp touching?(left, {rx, ry}) do
     touching_locations =
@@ -70,4 +74,4 @@ defmodule Day09 do
 end
 
 "./input.txt" |> File.stream!() |> Day09.part01() |> IO.inspect(label: "part 1")
-# "./input.txt" |> File.stream!() |> Day09.part02() |> IO.inspect(label: "part 2")
+"./input.txt" |> File.stream!() |> Day09.part02() |> IO.inspect(label: "part 2")
