@@ -33,6 +33,42 @@ defmodule Day10 do
 
   def part02(input) do
     input
+    |> Stream.map(&String.trim/1)
+    |> Stream.map(fn
+      "noop" ->
+        :noop
+
+      "addx " <> value ->
+        {:addx, String.to_integer(value)}
+    end)
+    |> Stream.concat(Stream.repeatedly(fn -> :eof end))
+    |> Stream.transform(
+      {@register_starting_value, 0, :queue.new()},
+      fn command, {register, pc, cpu} ->
+        case process_commands(register, cpu) do
+          {_next_register, :eof} ->
+            {:halt, {register, pc, cpu}}
+
+          {next_register, next_cpu} ->
+            acc = {next_register, pc + 1, add_command(next_cpu, command)}
+            {[acc], acc}
+        end
+      end
+    )
+    |> Stream.map(fn {register, pc, _cpu} -> {register, pc} end)
+    |> Stream.chunk_every(40, 40, :discard)
+    |> Stream.with_index()
+    |> Enum.each(fn {chunk, line} ->
+      chunk
+      |> Enum.map(fn {register, pc} ->
+        if (pc - (line * 40 + 1)) in Enum.map(-1..1, &(&1 + register)) do
+          ?#
+        else
+          ?.
+        end
+      end)
+      |> IO.puts()
+    end)
   end
 
   defp process_commands(register, cpu) do
@@ -75,4 +111,4 @@ defmodule Day10 do
 end
 
 "./input.txt" |> File.stream!() |> Day10.part01() |> IO.inspect(label: "part 1")
-# "./input.txt" |> File.stream!() |> Day10.part02() |> IO.inspect(label: "part 2")
+"./input.txt" |> File.stream!() |> Day10.part02() |> IO.inspect(label: "part 2")
