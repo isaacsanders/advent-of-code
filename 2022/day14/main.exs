@@ -11,9 +11,31 @@ defmodule Day14 do
       |> Enum.map(&elem(&1, 1))
       |> Enum.max()
 
+    state
+    |> Stream.iterate(&drop_sand_part1(&1, bottom))
+    |> Stream.chunk_every(2, 1)
+    |> Stream.drop_while(fn [left, right] ->
+      left != right
+    end)
+    |> Enum.at(0)
+    |> Enum.at(0)
+    |> Map.values()
+    |> Enum.frequencies()
+    |> Map.get(:sand)
+  end
+
+  def part02(input) do
+    state = create_state(input)
+
+    bottom =
+      state
+      |> Map.keys()
+      |> Enum.map(&elem(&1, 1))
+      |> Enum.max()
+
     final_state =
       state
-      |> Stream.iterate(&drop_sand(&1, bottom))
+      |> Stream.iterate(&drop_sand_part2(&1, bottom))
       |> Stream.chunk_every(2, 1)
       |> Stream.drop_while(fn [left, right] ->
         left != right
@@ -21,25 +43,19 @@ defmodule Day14 do
       |> Enum.at(0)
       |> Enum.at(0)
 
-    print_state(final_state)
-
     final_state
     |> Map.values()
     |> Enum.frequencies()
     |> Map.get(:sand)
   end
 
-  def part02(input) do
-    input
-  end
+  defp drop_sand_part1(state, bottom, current_location \\ @source)
 
-  defp drop_sand(state, bottom, current_location \\ @source)
-
-  defp drop_sand(state, bottom, {from_left, from_top}) when from_top == bottom + 1 do
+  defp drop_sand_part1(state, bottom, {from_left, from_top}) when from_top == bottom + 1 do
     Map.put(state, {from_left, from_top}, :falling_sand)
   end
 
-  defp drop_sand(state, bottom, {from_left, from_top}) when is_integer(bottom) do
+  defp drop_sand_part1(state, bottom, {from_left, from_top}) when is_integer(bottom) do
     case Map.fetch(state, {from_left, from_top + 1}) do
       {:ok, :falling_sand} ->
         Map.put_new(state, {from_left, from_top}, :falling_sand)
@@ -58,15 +74,43 @@ defmodule Day14 do
                 Map.put(state, {from_left, from_top}, :sand)
 
               :error ->
-                drop_sand(state, bottom, {from_left + 1, from_top + 1})
+                drop_sand_part1(state, bottom, {from_left + 1, from_top + 1})
             end
 
           :error ->
-            drop_sand(state, bottom, {from_left - 1, from_top + 1})
+            drop_sand_part1(state, bottom, {from_left - 1, from_top + 1})
         end
 
       :error ->
-        drop_sand(state, bottom, {from_left, from_top + 1})
+        drop_sand_part1(state, bottom, {from_left, from_top + 1})
+    end
+  end
+
+  defp drop_sand_part2(state, bottom, current_location \\ @source)
+
+  defp drop_sand_part2(state, bottom, {from_left, from_top}) when from_top == bottom + 1 do
+    Map.put(state, {from_left, from_top}, :sand)
+  end
+
+  defp drop_sand_part2(state, bottom, {from_left, from_top}) when is_integer(bottom) do
+    case Map.fetch(state, {from_left, from_top + 1}) do
+      {:ok, material} when material in @blocking_material ->
+        case Map.fetch(state, {from_left - 1, from_top + 1}) do
+          {:ok, material} when material in @blocking_material ->
+            case Map.fetch(state, {from_left + 1, from_top + 1}) do
+              {:ok, material} when material in @blocking_material ->
+                Map.put(state, {from_left, from_top}, :sand)
+
+              :error ->
+                drop_sand_part2(state, bottom, {from_left + 1, from_top + 1})
+            end
+
+          :error ->
+            drop_sand_part2(state, bottom, {from_left - 1, from_top + 1})
+        end
+
+      :error ->
+        drop_sand_part2(state, bottom, {from_left, from_top + 1})
     end
   end
 
@@ -133,5 +177,5 @@ defmodule Day14 do
   end
 end
 
-"./test.txt" |> File.stream!() |> Day14.part01() |> IO.inspect(label: "part 1")
-# "./input.txt" |> File.stream!() |> Day14.part02() |> IO.inspect(label: "part 2")
+"./input.txt" |> File.stream!() |> Day14.part01() |> IO.inspect(label: "part 1")
+"./input.txt" |> File.stream!() |> Day14.part02() |> IO.inspect(label: "part 2")
